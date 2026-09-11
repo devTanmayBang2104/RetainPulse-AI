@@ -19,10 +19,11 @@ router.get("/export/predictions", async (req, res, next) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    const predictions = await Prediction.find(query)
-      .sort({ createdAt: -1 })
-      .limit(1000)
-      .lean();
+    const limitNum = req.query.limit ? parseInt(req.query.limit) : 0; // 0 = no limit, export all
+
+    let queryBuilder = Prediction.find(query).sort({ createdAt: -1 });
+    if (limitNum > 0) queryBuilder = queryBuilder.limit(limitNum);
+    const predictions = await queryBuilder.lean();
 
     const csv = _toCsv(predictions.map(p => ({
       "Prediction ID": p._id,
@@ -55,14 +56,15 @@ router.get("/export/predictions", async (req, res, next) => {
  */
 router.get("/export/customers", async (req, res, next) => {
   try {
-    const { riskLevel } = req.query;
+    const { riskLevel, limit } = req.query;
     const query = {};
     if (riskLevel) query.riskLevel = riskLevel;
 
-    const customers = await Customer.find(query)
-      .sort({ churnProbability: -1 })
-      .limit(1000)
-      .lean();
+    const limitNum = limit ? parseInt(limit) : 0; // 0 = no limit, export all 7043 customers
+
+    let queryBuilder = Customer.find(query).sort({ churnProbability: -1 });
+    if (limitNum > 0) queryBuilder = queryBuilder.limit(limitNum);
+    const customers = await queryBuilder.lean();
 
     const csv = _toCsv(customers.map(c => ({
       "Customer ID": c.customerId,
