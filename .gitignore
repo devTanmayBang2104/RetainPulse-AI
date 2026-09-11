@@ -1,0 +1,21 @@
+# Root .gitignore for the entire project
+node_modules/
+dist/
+build/
+.env
+*.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+.DS_Store
+*.log
+.cache/
+coverage/
+.pytest_cache/
+docs
