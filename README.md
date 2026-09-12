@@ -130,35 +130,46 @@ npm run dev
 ## 📁 Repository Structure
 
 ```
-ML+DA/
-├── data/
-│   └── Telco_Customer_Churn.csv    # 7,043 customer records, 21 telecom attributes
-├── models/
-│   ├── logistic_model.pkl          # Pickled Logistic Regression pipeline
-│   ├── rf_model.pkl                # Pickled Random Forest pipeline
-│   └── xgb_model.pkl               # Pickled XGBoost pipeline
-├── notebooks/
-│   └── Customer_Churn_Prediction.ipynb  # End-to-end EDA, SMOTE, Model Training
-├── ml-service/                     # FastAPI Python Microservice
-│   ├── main.py                     # App bootstrap & REST endpoints
-│   ├── services/
-│   │   ├── predictor.py            # Model inference, What-If simulation
-│   │   ├── explainer.py            # SHAP value extraction & attribution
-│   │   ├── groq_service.py         # Groq Llama-3 AI retention co-pilot
-│   │   └── analytics.py            # Churn statistical aggregations
-│   └── requirements.txt
+RetainPulse-AI/
 ├── backend/                        # Node.js + Express Gateway
-│   ├── server.js                   # Server bootstrap & CORS
-│   └── src/
-│       ├── controllers/            # AI, Customer, Prediction, Analytics controllers
-│       ├── models/                 # Mongoose schemas (Customer, Prediction, ActivityLog)
-│       └── routes/                 # Express API routes
-└── frontend/                       # React 18 + Vite Frontend
-    ├── src/
-    │   ├── components/             # Reusable UI components & layouts
-    │   ├── pages/                  # Dashboard, Predict, Simulator, ModelStudio, Copilot
-    │   └── services/               # Axios API client
-    └── package.json
+│   ├── src/
+│   │   ├── config/                 # MongoDB Atlas connection (db.js)
+│   │   ├── controllers/            # AI, Customer, Prediction, Analytics controllers
+│   │   ├── middleware/             # Error handlers, rate limiters, security
+│   │   ├── models/                 # Mongoose schemas (Customer, Prediction, ActivityLog)
+│   │   ├── routes/                 # Express REST API routes (dashboard, customers, predictions, reports, ai)
+│   │   └── scripts/                # Database seeding pipeline (seed.js)
+│   ├── package.json
+│   └── server.js                   # Express server entry point & middleware configuration
+├── frontend/                       # React 18 + Vite Frontend
+│   ├── src/
+│   │   ├── components/             # UI components (Header, Sidebar, Layout, MetricCard)
+│   │   ├── pages/                  # Dashboard, Customers, Predict, Simulator, ModelStudio, Copilot, Reports
+│   │   ├── services/               # Centralized Axios API service layer (api.js)
+│   │   ├── App.jsx                 # Client-side routing & page providers
+│   │   └── main.jsx
+│   ├── index.html                  # Single-page application entry point
+│   ├── package.json
+│   └── vite.config.js              # Vite bundler configuration
+├── ml-service/                     # FastAPI Python Microservice
+│   ├── services/
+│   │   ├── predictor.py            # Multi-model inference & What-If simulation engine
+│   │   ├── explainer.py            # SHAP value extraction & feature attribution
+│   │   ├── groq_service.py         # Groq Cloud LLM retention co-pilot & fallback engine
+│   │   └── analytics.py            # Churn statistical aggregations
+│   ├── main.py                     # FastAPI microservice bootstrap & REST endpoints
+│   └── requirements.txt            # Python dependencies (FastAPI, scikit-learn, shap, groq)
+├── data/
+│   └── Telco_Customer_Churn.csv    # Authentic IBM Telco dataset (7,043 records, 21 attributes)
+├── models/
+│   ├── logistic_model.pkl          # Serialized Logistic Regression pipeline
+│   ├── rf_model.pkl                # Serialized Random Forest pipeline (Production default)
+│   └── xgb_model.pkl               # Serialized XGBoost pipeline
+├── notebooks/
+│   └── Customer_Churn_Prediction.ipynb  # End-to-end EDA, SMOTE, and model experimentation
+├── train.py                        # Standalone pipeline training & ColumnTransformer serialization
+├── requirements.txt                # Root Python dependencies
+└── README.md                       # Complete platform documentation & setup guide
 ```
 
 ---
