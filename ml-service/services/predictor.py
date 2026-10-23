@@ -23,9 +23,10 @@ class PredictorService:
     def _load_models(self):
         """Load all three trained pipeline models safely."""
         model_files = {
-            "logistic_regression": "logistic_model.pkl",
+            "ensemble": "ensemble_model.pkl",
             "random_forest": "rf_model.pkl",
-            "xgboost": "xgb_model.pkl"
+            "xgboost": "xgb_model.pkl",
+            "logistic_regression": "logistic_model.pkl"
         }
         for key, filename in model_files.items():
             path = os.path.join(MODEL_DIR, filename)
@@ -47,7 +48,7 @@ class PredictorService:
         Run prediction using the specified model.
         Returns probability, risk level, confidence, and explanations.
         """
-        model_key = features.get("model", "random_forest")
+        model_key = features.get("model", "ensemble")
         if model_key not in self.models:
             model_key = "random_forest"
 

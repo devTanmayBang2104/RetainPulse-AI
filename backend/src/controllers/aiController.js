@@ -277,7 +277,7 @@ Please answer questions specifically about this customer. When writing outreach 
       const response = await axios.post(
         "https://api.groq.com/openai/v1/chat/completions",
         {
-          model: "llama-3.3-70b-versatile",
+          model: "qwen/qwen3.8-27b",
           messages,
           max_tokens: 800,
           temperature: 0.7
@@ -291,7 +291,7 @@ Please answer questions specifically about this customer. When writing outreach 
         }
       );
       const reply = response.data.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
-      return res.json({ reply, modelUsed: "Groq Cloud (Llama 3.3 70B)" });
+      return res.json({ reply, modelUsed: "Groq Cloud (Qwen 3.8 27B)" });
     }
 
     if (openRouterKey) {

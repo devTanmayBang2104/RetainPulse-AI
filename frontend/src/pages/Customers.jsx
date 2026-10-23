@@ -32,7 +32,9 @@ export default function Customers() {
   const [simProfile, setSimProfile] = useState(null);
   const [baselineProb, setBaselineProb] = useState(null);
   const [currentProb, setCurrentProb] = useState(null);
+  const [shapExplanations, setShapExplanations] = useState([]);
   const [simLoading, setSimLoading] = useState(false);
+  const simDebounceRef = useRef(null);
 
   // AI Co-Pilot state
   const [aiResult, setAiResult] = useState(null);
@@ -106,6 +108,7 @@ export default function Customers() {
       const res = await predictionsAPI.predict(profile);
       setBaselineProb(res.churn_probability);
       setCurrentProb(res.churn_probability);
+      if (res.explanations) setShapExplanations(res.explanations);
     } catch (err) {
       console.error("Baseline prediction failed", err);
     } finally {
@@ -113,8 +116,8 @@ export default function Customers() {
     }
   };
 
-  // Run live simulation on parameter change
-  const handleSimChange = async (field, value) => {
+  // Run live simulation on parameter change with debouncing to prevent stale request race conditions
+  const handleSimChange = (field, value) => {
     if (!simProfile) return;
     
     const updatedProfile = { ...simProfile, [field]: value };
@@ -126,14 +129,25 @@ export default function Customers() {
 
     setSimProfile(updatedProfile);
     setSimLoading(true);
-    try {
-      const res = await predictionsAPI.predict(updatedProfile);
-      setCurrentProb(res.churn_probability);
-    } catch (err) {
-      console.error("Live simulation failed", err);
-    } finally {
-      setSimLoading(false);
+
+    if (simDebounceRef.current) {
+      clearTimeout(simDebounceRef.current);
     }
+
+    // Dropdowns trigger immediately; sliders wait 300ms until the user stops dragging
+    const delay = (field === "tenure" || field === "MonthlyCharges") ? 300 : 0;
+
+    simDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await predictionsAPI.predict(updatedProfile);
+        setCurrentProb(res.churn_probability);
+        if (res.explanations) setShapExplanations(res.explanations);
+      } catch (err) {
+        console.error("Live simulation failed", err);
+      } finally {
+        setSimLoading(false);
+      }
+    }, delay);
   };
 
   // Run Generative AI Retention Strategy
@@ -555,7 +569,10 @@ How can I help you retain this customer today? You can ask me to draft emails, p
               {/* Drivers Card */}
               <div className="bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 rounded-xl p-4 flex flex-col justify-between">
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Primary Risk / Benefit Drivers</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SHAP Root-Cause Feature Attribution</h4>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold">TreeSHAP Local XAI</span>
+                  </div>
                   <div className="space-y-3">
                     {currentDrivers.map((d, i) => (
                       <div key={i} className="space-y-1">
@@ -576,7 +593,7 @@ How can I help you retain this customer today? You can ask me to draft emails, p
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-500 italic mt-3">
-                  Drivers update dynamically as simulator features change.
+                  Real-time TreeSHAP values calculated dynamically by the FastAPI explainer service.
                 </p>
               </div>
             </div>
@@ -659,9 +676,22 @@ How can I help you retain this customer today? You can ask me to draft emails, p
             {/* 4. What-If Retention Simulator */}
             {simProfile && (
               <div className="border-t border-slate-200 dark:border-slate-800/80 pt-5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
-                  <h3 className="text-xs font-bold text-slate-750 dark:text-slate-200 uppercase tracking-widest">"What-If" Retention Simulator</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-xs font-bold text-slate-750 dark:text-slate-200 uppercase tracking-widest">"What-If" Retention Simulator</h3>
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                      ⚡ Live Real-Time
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {simLoading && (
+                      <span className="text-[11px] text-indigo-500 font-medium flex items-center gap-1.5 animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                        Updating prediction...
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50/50 dark:bg-slate-950/20 p-4 rounded-xl border border-slate-200 dark:border-slate-800/50 text-[11px]">

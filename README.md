@@ -60,16 +60,19 @@
 
 ## 📊 Machine Learning Model Benchmarks
 
-| Model | ROC-AUC | F1-Score | Precision | Recall | Primary Role / Trade-off |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **Logistic Regression** | **0.86** | 0.64 | 0.52 | **0.84** | Baseline interpretable linear model; catches highest raw churners but suffers from false positives. |
-| **Random Forest** ⭐ | 0.85 | **0.65** | **0.56** | 0.78 | **Production Default**: Highest precision and F1-score; optimizes retention budget ROI. |
-| **XGBoost** | 0.85 | 0.63 | 0.55 | 0.75 | Gradient boosting pipeline with `scale_pos_weight` for class imbalance. |
+All models evaluated via **5-Fold Stratified Cross-Validation on the training split (n=5,634)** and verified on an **unseen holdout (n=1,409)** at the standard $p \ge 0.5$ operating threshold:
 
-### 💡 Interview Talking Point: The "Why Random Forest over Highest AUC?" Defense
-- **ROC-AUC vs. Operational Threshold**: ROC-AUC measures aggregate rank-ordering power across all possible thresholds (where Logistic Regression scores 0.86). However, in enterprise deployment, the model operates at a *fixed decision threshold ($p \ge 0.5$)*.
-- **Cost Asymmetry**: In telecom customer retention, False Positives waste expensive \$15–\$30/mo retention discounts and agent outreach on customers who were never going to leave.
-- **Economic Decision**: At the operating decision boundary, Random Forest delivers the highest precision (0.56) and F1-score (0.65), saving company capital while capturing 78% of genuine churners.
+| Model Architecture | 5-Fold CV ROC-AUC | Holdout ROC-AUC | Holdout Precision | Holdout Recall | Holdout F1 | Operating Profile |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Logistic Regression** | 0.846 ± 0.012 | 0.841 | 0.503 | **0.783** | 0.613 | High recall; broader boundary with higher false alarm rate. |
+| **Random Forest** | 0.847 ± 0.010 | 0.843 | 0.520 | **0.789** | 0.627 | Strong recall with non-linear tree splits. |
+| **Regularized XGBoost** | 0.849 ± 0.011 | **0.846** | **0.563** | 0.741 | **0.640** | L1/L2 regularization (`reg_alpha=0.6`, `reg_lambda=1.5`) suppresses noise. |
+| **RF + XGBoost Soft-Voting Ensemble** ⭐ | **0.849 ± 0.010** | **0.846** | **0.558** | 0.743 | **0.638** | **Production Deployed**: Balanced operating point with optimal F1 stability. |
+
+### 💡 Interview Defense: Model Selection & Empirical Findings
+- **Statistical Parity on Ranking Quality**: All models achieve nearly identical cross-validation ROC-AUC ($0.85 \pm 0.01$), meaning global rank-ordering capability is comparable across architectures.
+- **Operating Trade-offs**: The true differentiator is position on the precision-recall curve. Tree models (RF) capture more raw churners (~79% recall at ~0.52 precision), while regularized XGBoost and the soft-voting ensemble tighten the boundary (~74% recall at ~0.56 precision), reducing unneeded retention offers.
+- **Production Choice**: The **Soft-Voting Ensemble** is deployed as default for balanced operating performance, with the ability to tune the decision threshold dynamically based on acquisition-to-retention cost ratios.
 
 ---
 

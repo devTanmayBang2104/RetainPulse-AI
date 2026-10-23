@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from "react";
-import { Zap, RotateCcw, TrendingDown, TrendingUp, CheckCircle, AlertTriangle, Minus } from "lucide-react";
-import { predictionsAPI } from "../services/api";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Zap, RotateCcw, TrendingDown, TrendingUp, CheckCircle, AlertTriangle, Minus, Users } from "lucide-react";
+import { predictionsAPI, customersAPI } from "../services/api";
 import { clsx } from "clsx";
 
 /* ─── High-risk baseline customer ─────────────────────────── */
@@ -147,6 +147,8 @@ export default function WhatIfSimulator() {
   const [applied, setApplied] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [customerOptions, setCustomerOptions] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("default");
   const loadingRef = useRef(false);
 
   const runPrediction = useCallback(async (profileToRun) => {
@@ -164,14 +166,61 @@ export default function WhatIfSimulator() {
     }
   }, []);
 
-  const handleInit = async () => {
-    const prob = await runPrediction(BASE_PROFILE);
+  const handleInit = async (profileToUse = profile) => {
+    const prob = await runPrediction(profileToUse);
     if (prob !== null) {
       setBaseline(prob);
       setCurrentProb(prob);
       setInitialized(true);
-      setProfile({ ...BASE_PROFILE });
+      setProfile({ ...profileToUse });
       setApplied([]);
+    }
+  };
+
+  // Automatically start simulation on mount
+  useEffect(() => {
+    handleInit(BASE_PROFILE);
+    customersAPI.getAll({ limit: 12, riskLevel: 'HIGH' })
+      .then(res => {
+        if (res && res.customers) {
+          setCustomerOptions(res.customers);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSelectCustomer = async (e) => {
+    const val = e.target.value;
+    setSelectedCustomerId(val);
+    if (val === 'default') {
+      handleInit(BASE_PROFILE);
+    } else {
+      const found = customerOptions.find(c => c.customerId === val);
+      if (found) {
+        const newProf = {
+          gender: found.gender || 'Male',
+          SeniorCitizen: found.seniorCitizen || 0,
+          Partner: found.partner || 'No',
+          Dependents: found.dependents || 'No',
+          tenure: found.tenure || 1,
+          PhoneService: found.phoneService || 'Yes',
+          MultipleLines: found.multipleLines || 'No',
+          InternetService: found.internetService || 'Fiber optic',
+          OnlineSecurity: found.onlineSecurity || 'No',
+          OnlineBackup: found.onlineBackup || 'No',
+          DeviceProtection: found.deviceProtection || 'No',
+          TechSupport: found.techSupport || 'No',
+          StreamingTV: found.streamingTV || 'No',
+          StreamingMovies: found.streamingMovies || 'No',
+          Contract: found.contract || 'Month-to-month',
+          PaperlessBilling: found.paperlessBilling || 'Yes',
+          PaymentMethod: found.paymentMethod || 'Electronic check',
+          MonthlyCharges: found.monthlyCharges || 70,
+          TotalCharges: found.totalCharges || 100,
+          model: 'random_forest'
+        };
+        handleInit(newProf);
+      }
     }
   };
 
@@ -236,29 +285,40 @@ export default function WhatIfSimulator() {
               Apply interventions and watch the churn probability change in real-time.
             </p>
           </div>
-          {!initialized ? (
-            <button id="btn-init-simulator" onClick={handleInit} disabled={loading}
-              className="btn-primary btn shrink-0">
-              {loading ? "Loading..." : "▶ Start Simulation"}
-            </button>
-          ) : (
+          <div className="flex items-center gap-3 shrink-0">
+            {customerOptions.length > 0 && (
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5">
+                <Users className="w-4 h-4 text-primary-400" />
+                <select
+                  value={selectedCustomerId}
+                  onChange={handleSelectCustomer}
+                  className="bg-transparent text-xs text-slate-200 outline-none cursor-pointer font-medium"
+                >
+                  <option value="default" className="bg-slate-900">Preset High Risk (84% Churn)</option>
+                  {customerOptions.map(c => (
+                    <option key={c.customerId} value={c.customerId} className="bg-slate-900">
+                      {c.customerId} ({c.contract}, ${c.monthlyCharges}/mo)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button id="btn-reset-simulator" onClick={handleReset} disabled={loading}
-              className="btn-secondary btn shrink-0">
-              <RotateCcw className="w-4 h-4" /> Reset
+              className="btn-secondary btn text-xs py-2">
+              <RotateCcw className="w-3.5 h-3.5" /> Reset
             </button>
-          )}
+          </div>
         </div>
       </div>
 
-      {!initialized && (
+      {false && (
         <div className="card flex flex-col items-center justify-center py-20 text-center">
-          <Zap className="w-16 h-16 text-slate-700 mb-4" />
-          <p className="text-slate-400 font-medium">Click "Start Simulation" to load the baseline prediction</p>
-          <p className="text-slate-600 text-sm mt-1">Calls the ML service once to get the baseline churn probability</p>
+          <div className="w-12 h-12 border-2 border-slate-700 border-t-primary-500 rounded-full animate-spin mb-4" />
+          <p className="text-slate-400 font-medium">Calculating baseline churn probability...</p>
         </div>
       )}
 
-      {initialized && (
+      {true && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* LEFT: Gauge + Stats */}
           <div className="space-y-4">
